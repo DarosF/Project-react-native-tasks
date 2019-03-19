@@ -6,7 +6,8 @@ import {
     View,
     ImageBackground,
     TouchableOpacity,
-    Alert
+    Alert,
+    AsyncStorage
 } from 'react-native'
 import axios from 'axios'
 import { server, showError } from '../common'
@@ -31,12 +32,12 @@ signin = async () => {
             })
             axios.defaults.headers.common['Authorization'] //qualquer requisição feita com o axios esse cabeçalho será passado junto com a requisição!
                 = `bearer ${res.data.token}` //é o token recebido
-            this.props.navigation.navigate('Home') //Home é a tela principal chamada no navigator
+                AsyncStorage.setItem('userData', JSON.stringify(res.data))//armazena as informacoes do ususario para uma secao
+                this.props.navigation.navigate('Home', res.data) //Home é a tela principal chamada no navigator
         } catch (err) {
             Alert.alert('Login Failed!', 'E-mail or password incorrect!')
         }
     }
-
 
 signup = async () => {
     try {
@@ -70,7 +71,7 @@ signinOrSignup = () => { //método await deve ser sempre async ()
         if(this.state.stageNew) {
             validations.push(this.state.name && this.state.name.trim())
             validations.push(this.state.confirmPassword)
-            validations.push(this.state.password === this.state.confirmPassword)
+            validations.push(this.state.password === this.state.confirmPassword)//garante que as senhas estejam iguais
         }
 
         const validForm = validations.reduce(( all, v ) => all && v)
@@ -101,7 +102,7 @@ signinOrSignup = () => { //método await deve ser sempre async ()
                             placeholder='Confirmation'
                             style={styles.input} value={this.state.confirmPassword}
                             onChangeText={confirmPassword => this.setState({ confirmPassword })} />}
-                    <TouchableOpacity disabled={!validForm}
+                    <TouchableOpacity disabled={!validForm} //se as validacoes não forem atendidas o botao fica opaco
                         onPress={this.signinOrSignup}>
                         <View style={[styles.button, !validForm ? { backgroundColor: '#AAA' } : {}]}>
                             <Text style={styles.butonText}>

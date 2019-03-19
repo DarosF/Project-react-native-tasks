@@ -12,13 +12,16 @@ import {
 import axios from 'axios'
 import moment from 'moment'
 import 'moment/locale/en-gb' //é necessario apenas o estilo ser carregado
-import todayImage from '../../assets/imgs/today.jpg'
 import commonStyles from '../commonStyles'
 import Task from '../components/Task'
 import Icon from 'react-native-vector-icons/FontAwesome'
 import ActionButton from 'react-native-action-button'
 import AddTask from './AddTask' //esta na pasta screen
 import { server, showError } from '../common'
+import todayImage from '../../assets/imgs/today.jpg'
+import tomorrowImage from '../../assets/imgs/tomorrow.jpg'
+import weekImage from '../../assets/imgs/week.jpg'
+import monthImage from '../../assets/imgs/month.jpg'
 
 export default class Agenda extends Component {
     state = {
@@ -82,9 +85,9 @@ export default class Agenda extends Component {
         }
     }
 
-    loadTasks = async () => { //carregando as tasks
+    loadTasks = async () => { //// Lê as tasks e carrega
         try {
-            const maxDate = moment().format('YYYY-MM-DD 23:59')
+            const maxDate = moment().add({ days: this.props.daysAhead }).format('YYYY-MM-DD 23:59')
             const res = await axios.get(`${server}/tasks?date=${maxDate}`)
             this.setState({ tasks: res.data }, this.filterTasks) //após ter carregado todas as tasks aplica-se o filtro das tasks
         } catch (err) {
@@ -93,33 +96,58 @@ export default class Agenda extends Component {
     }
 
     render() { // JSX
+        let styleColor = null //inicializando as cores
+        let image = null      //inicializando a imagem
+
+        switch (this.props.daysAhead) {
+            case 0:
+                styleColor = commonStyles.colors.today
+                image = todayImage
+                break
+            case 1:
+                styleColor = commonStyles.colors.tomorrow
+                image = tomorrowImage
+                break
+            case 7:
+                styleColor = commonStyles.colors.week
+                image = weekImage
+                break
+            default:
+                styleColor = commonStyles.colors.month
+                image = monthImage
+                break
+        }
+
         return (
             <View style={styles.container}>
                 <AddTask isVisible={this.state.showAddTask}
                     onSave={this.addTask}
                     onCancel={() => this.setState({ showAddTask: false })} />
-                <ImageBackground source={todayImage} style={styles.background}>
+                <ImageBackground source={image} style={styles.background}>
                     <View style={styles.iconBar}>
+                        <TouchableOpacity onPress={() => this.props.navigation.openDrawer()}>
+                            <Icon name='bars' size={30} color={commonStyles.colors.secondary} />
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={this.toggleFilter}>
                             <Icon name={this.state.showDoneTasks ? 'eye' : 'eye-slash'}
                                 size={30} color={commonStyles.colors.secondary} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.titleBar}>
-                        <Text style={styles.title}>Today</Text>
+                        <Text style={styles.title}>{this.props.title}</Text>
                         <Text style={styles.subtitle}>
-                            {moment().locale('en-gb').format('ddd, D [] MMMM')}
+                            { moment().locale('en-gb').format('ddd, D [] MMMM') }
                         </Text>
                     </View>
                 </ImageBackground>
                 <View style={styles.tasksContainer}>
-                    <FlatList data={this.state.visibleTasks} //Flat list faz com que tenhamos o scroll rodando a tela para baixo
+                    <FlatList data={this.state.visibleTasks} //Flatlist faz com que tenhamos o scroll rodando a tela para baixo
                         keyExtractor={item => `${item.id}`} //template string `` converte para string
                         renderItem={({ item }) =>
                             <Task {...item} onToggleTask={this.toggleTask}
                                 onDelete={this.deleteTask} />} />
                 </View>
-                <ActionButton buttonColor={commonStyles.colors.today} //botao para adicionar as tasks
+                <ActionButton buttonColor={styleColor} //botao para adicionar as tasks
                     onPress={() => { this.setState({ showAddTask: true }) }} />
             </View>
         )
@@ -158,6 +186,6 @@ const styles = StyleSheet.create({
         marginTop: Platform.OS === 'ios' ? 30 : 10,
         marginHorizontal: 20,
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between', //space-between para que os botoes fiquem um em cada lado.
     }
 })
